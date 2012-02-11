@@ -168,7 +168,7 @@ function acp#completeSnipmate(findstart, base)
     return s:posSnipmateCompletion
   endif
   let lenBase = len(a:base)
-  let items = filter(GetSnipsInCurrentScope(),
+  let items = filter(s:GetSnipsInCurrentScope(),
         \            'strpart(v:key, 0, lenBase) ==? a:base')
   return map(sort(items(items)), 's:makeSnipmateItem(v:val[0], v:val[1])')
 endfunction
@@ -176,9 +176,9 @@ endfunction
 "
 function acp#onPopupCloseSnipmate()
   let word = s:getCurrentText()[s:posSnipmateCompletion :]
-  for trigger in keys(GetSnipsInCurrentScope())
+  for trigger in keys(s:GetSnipsInCurrentScope())
     if word ==# trigger
-      call feedkeys("\<C-r>=TriggerSnippet()\<CR>", "n")
+      call feedkeys("\<C-r>=snipMate#TriggerSnippet()\<CR>", "n")
       return 0
     endif
   endfor
@@ -404,10 +404,21 @@ function s:makeSnipmateItem(key, snip)
 endfunction
 
 "
+function s:GetSnipsInCurrentScope()
+    let scopes = [bufnr('%')] + split(&ft, '\.') + ['_']
+    let snips = {}
+    for item in items(snipMate#GetSnippets(scopes, "*"))
+        let info = substitute(keys(item[1])[0], '^\S\+\s\+\(\w\+\)\s\+\w\+.*$', 'snippet \1', '')
+        let snips[item[0]] = info
+    endfor
+    return snips
+endfunction
+
+"
 function s:getMatchingSnipItems(base)
   let key = a:base . "\n"
   if !exists('s:snipItems[key]')
-    let s:snipItems[key] = items(GetSnipsInCurrentScope())
+    let s:snipItems[key] = items(s:GetSnipsInCurrentScope())
     call filter(s:snipItems[key], 'strpart(v:val[0], 0, len(a:base)) ==? a:base')
     call map(s:snipItems[key], 's:makeSnipmateItem(v:val[0], v:val[1])')
   endif
